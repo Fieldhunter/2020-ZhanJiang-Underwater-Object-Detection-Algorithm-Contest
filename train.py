@@ -8,6 +8,7 @@ from keras.layers import Input, Lambda
 from keras.models import Model
 from keras_radam import RAdam
 from keras.callbacks import TensorBoard, ReduceLROnPlateau, EarlyStopping
+from swa import SWA
 
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
@@ -65,6 +66,9 @@ def _main():
 
     # Unfreeze and continue training, to fine-tune.
     # Train longer if the result is not good.
+    swa_start = 70
+    swa_obj = SWA('',swa_start)
+
     if True:
         for i in range(len(model.layers)//2, len(model.layers)):
             model.layers[i].trainable = True
@@ -79,7 +83,7 @@ def _main():
             validation_steps=max(1, num_val//batch_size),
             epochs=100,
             initial_epoch=50,
-            callbacks=[logging, reduce_lr, early_stopping])
+            callbacks=[logging, reduce_lr, early_stopping, swa_obj])
         model.save_weights(log_dir + 'trained_weights_final.h5')
 
     # Further training if needed.
