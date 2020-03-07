@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import os
+import cv2
 
 
 def process():
@@ -9,9 +10,12 @@ def process():
 
 	# 遍历图片
 	for i in all_name:
-		train_result.append(image_path+i.rstrip('xml')+'jpg')
+		image_name = image_path+i.rstrip('xml')+'jpg'
+		train_result.append(image_name)
 		soup = BeautifulSoup(open(file_path+i), 'lxml')
 		bbx = soup.find_all('object')
+		img = cv2.imread(image_name)
+		height, width, _ = img.shape
 
 		# 遍历候选框
 		for j in bbx:
@@ -30,9 +34,9 @@ def process():
 					ymax, ymin = ymax, ymin
 
 				# 判断ground truth是否超出图像范围
-				if xmin > 1920 or xmax <= 0:
+				if xmin > width or xmax <= 0:
 					continue
-				if ymin > 1080 or ymax <= 0:
+				if ymin > height or ymax <= 0:
 					continue
 
 				# 处于图像边缘候选框的处理
@@ -40,10 +44,10 @@ def process():
 					xmin = 1
 				if ymin <= 0:
 					ymin = 1
-				if xmax > 1920:
-					xmax = 1920
-				if ymax > 1080:
-					ymax = 1080
+				if xmax > width:
+					xmax = width
+				if ymax > height:
+					ymax = height
 
 				# 判断是否为无效框
 				x_distance = xmax - xmin
