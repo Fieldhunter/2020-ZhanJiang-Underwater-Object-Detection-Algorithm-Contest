@@ -1,11 +1,16 @@
 """Miscellaneous utility functions."""
 
 from functools import reduce
-
+import sys
 from PIL import Image
 import numpy as np
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
+import cv2
+import ntpath
+from scipy import misc
 
+sys.path.insert(0, 'ops/')
+import data_ops
 def compose(*funcs):
     """Compose arbitrarily many functions, evaluated left to right.
 
@@ -30,43 +35,69 @@ def letterbox_image(image, size):
     new_image.paste(image, ((w-nw)//2, (h-nh)//2))
     return new_image
 
+def bilinear_interpolation(img,out_dim):
+    src_h, src_w, channel = img.shape
+    dst_h, dst_w = out_dim[1], out_dim[0]
+    if src_h == dst_h and src_w == dst_w:
+        return img.copy()
+    dst_img = np.zeros((dst_h,dst_w,3),dtype=np.uint8)
+    scale_x, scale_y = float(src_w) / dst_w, float(src_h) / dst_h
+    for i in range(3):
+        for dst_y in range(dst_h):
+            for dst_x in range(dst_w):
+ 
+                # find the origin x and y coordinates of dst image x and y
+                # use geometric center symmetry
+                # if use direct way, src_x = dst_x * scale_x
+                src_x = (dst_x + 0.5) * scale_x - 0.5
+                src_y = (dst_y + 0.5) * scale_y - 0.5
+ 
+                # find the coordinates of the points which will be used to compute the interpolation
+                src_x0 = int(np.floor(src_x))
+                src_x1 = min(src_x0 + 1 ,src_w - 1)
+                src_y0 = int(np.floor(src_y))
+                src_y1 = min(src_y0 + 1, src_h - 1)
+ 
+                # calculate the interpolation
+                temp0 = (src_x1 - src_x) * img[src_y0,src_x0,i] + (src_x - src_x0) * img[src_y0,src_x1,i]
+                temp1 = (src_x1 - src_x) * img[src_y1,src_x0,i] + (src_x - src_x0) * img[src_y1,src_x1,i]
+                dst_img[dst_y,dst_x,i] = int((src_y1 - src_y) * temp0 + (src_y - src_y0) * temp1)
+ 
+    return dst_img
+
 def rand(a=0, b=1):
     return np.random.rand()*(b-a) + a
 
-def get_random_data(annotation_line, input_shape, random=True, max_boxes=20, jitter=.3, hue=.1, sat=1.5, val=1.5, proc_img=True):
+def data_augmention(sess, image_u, gen_image, test_image):
+    img_name = ntpath.basename(test_image)
+    img_name = img_name.split('.')[0]
+
+    batch_images = np.empty((1, 256, 256, 3), dtype=np.float32)
+
+    #a_img = misc.imread(test_image).astype('float32')
+    a_img = cv2.imread(test_image)
+    a_img = cv2.cvtColor(a_img, cv2.COLOR_BGR2RGB)
+    a_img = a_img.astype('float32')
+    a_img = misc.imresize(a_img, (256, 256, 3))
+    a_img = data_ops.preprocess(a_img)
+    a_img = np.expand_dims(a_img, 0)
+    batch_images[0, ...] = a_img
+
+    gen_images = np.asarray(sess.run(gen_image, feed_dict={image_u:batch_images}))
+    gen_images = gen_images.reshape(256,256,3)
+    gen_images = data_ops.deprocess(gen_images)
+    gen_images = bilinear_interpolation(gen_images, (416, 416))
+
+    return gen_images
+
+def get_random_data(sess, image_u, gen_image, annotation_line, input_shape, random=True, max_boxes=20, jitter=.3, hue=.1, sat=1.5, val=1.5, proc_img=True):
     '''random preprocessing for real-time data augmentation'''
     line = annotation_line.split()
-    image = Image.open(line[0])
+    image = Image.fromarray(data_augmention(sess, image_u, gen_image, line[0]))
     iw, ih = image.size
     h, w = input_shape
     box = np.array([np.array(list(map(int,box.split(',')))) for box in line[1:]])
 
-    if not random:
-        # resize image
-        scale = min(w/iw, h/ih)
-        nw = int(iw*scale)
-        nh = int(ih*scale)
-        dx = (w-nw)//2
-        dy = (h-nh)//2
-        image_data=0
-        if proc_img:
-            image = image.resize((nw,nh), Image.BICUBIC)
-            new_image = Image.new('RGB', (w,h), (128,128,128))
-            new_image.paste(image, (dx, dy))
-            image_data = np.array(new_image)/255.
-
-        # correct boxes
-        box_data = np.zeros((max_boxes,5))
-        if len(box)>0:
-            np.random.shuffle(box)
-            if len(box)>max_boxes: box = box[:max_boxes]
-            box[:, [0,2]] = box[:, [0,2]]*scale + dx
-            box[:, [1,3]] = box[:, [1,3]]*scale + dy
-            box_data[:len(box)] = box
-
-        return image_data, box_data
-
-    # resize image
     new_ar = w/h * rand(1-jitter,1+jitter)/rand(1-jitter,1+jitter)
     scale = rand(.25, 2)
     if new_ar < 1:
@@ -75,14 +106,6 @@ def get_random_data(annotation_line, input_shape, random=True, max_boxes=20, jit
     else:
         nw = int(scale*w)
         nh = int(nw/new_ar)
-    image = image.resize((nw,nh), Image.BICUBIC)
-
-    # place image
-    dx = int(rand(0, w-nw))
-    dy = int(rand(0, h-nh))
-    new_image = Image.new('RGB', (w,h), (128,128,128))
-    new_image.paste(image, (dx, dy))
-    image = new_image
 
     # flip image or not
     flip = rand()<.5
@@ -106,8 +129,6 @@ def get_random_data(annotation_line, input_shape, random=True, max_boxes=20, jit
     box_data = np.zeros((max_boxes,5))
     if len(box)>0:
         np.random.shuffle(box)
-        box[:, [0,2]] = box[:, [0,2]]*nw/iw + dx
-        box[:, [1,3]] = box[:, [1,3]]*nh/ih + dy
         if flip: box[:, [0,2]] = w - box[:, [2,0]]
         box[:, 0:2][box[:, 0:2]<0] = 0
         box[:, 2][box[:, 2]>w] = w
