@@ -1,3 +1,4 @@
 data/
 pre_train/
 *.h5
+check_point/
