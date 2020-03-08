@@ -9,7 +9,6 @@ from keras.models import Model
 from keras_radam import RAdam
 from keras.callbacks import TensorBoard, ReduceLROnPlateau, EarlyStopping
 import tensorflow as tf
-from pix2pix import *
 
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
@@ -163,47 +162,17 @@ def create_tiny_model(input_shape, anchors, num_classes, load_pretrained=True, f
 
     return model
 
-def UWGAN():
-    # global step that is saved with a model to keep track of how many steps/epochs
-    global_step = tf.Variable(0, name='global_step', trainable=False)
-
-    # underwater image
-    image_u = tf.placeholder(tf.float32, shape=(1, 256, 256, 3), name='image_u')
-
-    # generated corrected colors
-    layers    = netG_encoder(image_u)
-    gen_image = netG_decoder(layers)
-
-    saver = tf.train.Saver(max_to_keep=1)
-
-    init = tf.group(tf.local_variables_initializer(), tf.global_variables_initializer())
-    sess = tf.Session()
-    sess.run(init)
-
-    ckpt = tf.train.get_checkpoint_state('check_point/')
-    if ckpt and ckpt.model_checkpoint_path:
-        print("Restoring previous model...")
-        try:
-            saver.restore(sess, ckpt.model_checkpoint_path)
-            print("Model restored")
-        except:
-            print("Could not restore model")
-            pass
-
-    return sess, image_u, gen_image
-
 def data_generator(annotation_lines, batch_size, input_shape, anchors, num_classes):
     '''data generator for fit_generator'''
     n = len(annotation_lines)
     i = 0
-    sess, image_u, gen_image = UWGAN()
     while True:
         image_data = []
         box_data = []
         for b in range(batch_size):
             if i==0:
                 np.random.shuffle(annotation_lines)
-            image, box = get_random_data(sess, image_u, gen_image, annotation_lines[i], input_shape, random=True)
+            image, box = get_random_data(annotation_lines[i], input_shape, random=True)
             image_data.append(image)
             box_data.append(box)
             i = (i+1) % n
