@@ -80,8 +80,8 @@ def get_random_data(annotation_line, input_shape, random=True, max_boxes=20, jit
 
     
     image = np.pad(image, ((dy, dy), (dx, dx), (0, 0)), 'constant', constant_values=128)
-    if tuple(image.shape[:2]) != (416,416):
-        image = np.pad(image, ((0, 416-image.shape[0]), (0, 416-image.shape[1]), (0, 0)),\
+    if tuple(image.shape[:2]) != input_shape:
+        image = np.pad(image, ((0, input_shape[0]-image.shape[0]), (0, input_shape[1]-image.shape[1]), (0, 0)),\
             'constant', constant_values=128)
 
     # correct boxes
