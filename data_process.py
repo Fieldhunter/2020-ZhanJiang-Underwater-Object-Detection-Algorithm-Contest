@@ -87,7 +87,7 @@ def save_file(train_result, k_mean_result):
 if __name__ == '__main__':
     class_label = ['holothurian', 'echinus', 'scallop', 'starfish', 'waterweeds']
     file_path = 'data/train/box/'
-    image_path = 'data/train/image/'
+    image_path = 'data/train/augment/'
     all_name = os.listdir(file_path)
 
     train_result, k_mean_result = process()
