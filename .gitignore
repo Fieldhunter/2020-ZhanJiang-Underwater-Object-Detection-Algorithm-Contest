@@ -1,4 +1,4 @@
 data/
-pre_train/
+*pre_train/
 *.h5
-check_point/
+*models/
