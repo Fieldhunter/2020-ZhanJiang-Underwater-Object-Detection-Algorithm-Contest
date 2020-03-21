@@ -15,7 +15,7 @@ class YOLO(object):
     _defaults = {
         "model_path": 'models/trained_weights_final.h5',
         "anchors_path": '../data/yolo_anchors.txt',
-        "classes_path": '../data/classes.txt',
+        "classes_path": '../data/yolo_classes.txt',
         "score" : 0.013,
         "iou" : 0.3,
         "model_image_size" : (448, 448),
@@ -112,7 +112,7 @@ def detect_img(yolo, test):
 
     for img in tqdm(test):
         image = cv2.imread(img)
-        height, width, _ = cv2.imread(img.replace('test_augment', 'test-A-image')).shape
+        height, width, _ = cv2.imread(img.replace('test_A_augment', 'test-A-image')).shape
         scale = min(448/width, 448/height)
         nw = int(width*scale)
         nh = int(height*scale)
@@ -187,7 +187,7 @@ def save_csv(name, image_id, confidence, xmin, ymin, xmax, ymax):
 
 
 if __name__ == '__main__':
-    TEST_PATH = "../data/test_augment/"
+    TEST_PATH = "../data/test/test_A_augment/"
     TEST_NAME = glob.glob(TEST_PATH + "*.jpg")
     yolo = YOLO()
 

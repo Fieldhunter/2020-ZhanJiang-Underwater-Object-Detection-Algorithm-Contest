@@ -99,9 +99,9 @@ def process():
 
 
 def save_file(train_result, k_mean_result):
-    with open('../data/train_data.txt', 'w') as f:
+    with open('../data/yolo_train_data.txt', 'w') as f:
         f.writelines(train_result)
-    with open('../data/k_mean_data.txt', 'w') as f:
+    with open('../data/yolo_k_mean_data.txt', 'w') as f:
         f.writelines(k_mean_result)
 
 
