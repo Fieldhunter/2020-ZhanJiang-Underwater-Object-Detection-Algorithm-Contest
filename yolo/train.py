@@ -8,33 +8,28 @@ from keras.layers import Input, Lambda
 from keras.models import Model
 from keras_radam import RAdam
 from keras.callbacks import TensorBoard, ReduceLROnPlateau, EarlyStopping, LearningRateScheduler
-from swa import SWA
-from lr_schedule import LR_schedule
 import tensorflow as tf
+import sys
+sys.path.insert(0, '../')
+from swa import SWA
 
-from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
+from yolo3.model import preprocess_true_boxes, yolo_body, yolo_loss
 from yolo3.utils import get_random_data
 
 
 def _main():
-    annotation_path = 'data/train_data.txt'
-    log_dir = 'models/yolo/'
-    classes_path = 'data/classes.txt'
-    anchors_path = 'data/yolo_anchors.txt'
+    annotation_path = '../data/train_data.txt'
+    log_dir = 'models/'
+    classes_path = '../data/classes.txt'
+    anchors_path = '../data/yolo_anchors.txt'
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
 
     input_shape = (448,448) # multiple of 32, hw
 
-    is_tiny_version = len(anchors)==6 # default setting
-    if is_tiny_version:
-        model = create_tiny_model(input_shape, anchors, num_classes,
-            freeze_body=2, weights_path='model_data/tiny_yolo_weights.h5')
-    else:
-        model = create_model(input_shape, anchors, num_classes,
-            freeze_body=2, weights_path='pre_train/yolo_weights.h5') # make sure you know what you freeze
-
+    model = create_model(input_shape, anchors, num_classes,
+        freeze_body=2, weights_path='pre_train/yolo_weights.h5') # make sure you know what you freeze
     logging = TensorBoard(log_dir=log_dir)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)
@@ -77,7 +72,7 @@ def _main():
         for i in range(len(model.layers)):
             model.layers[i].trainable = True
         model.compile(optimizer=RAdam(), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
-        print('Unfreeze half of the layers.')
+        print('Unfreeze all of the layers.')
 
         batch_size = 8 # note that more GPU memory is required after unfreezing the body
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
@@ -133,36 +128,6 @@ def create_model(input_shape, anchors, num_classes, load_pretrained=True, freeze
 
     model_loss = Lambda(yolo_loss, output_shape=(1,), name='yolo_loss',
         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5})(
-        [*model_body.output, *y_true])
-    model = Model([model_body.input, *y_true], model_loss)
-
-    return model
-
-def create_tiny_model(input_shape, anchors, num_classes, load_pretrained=True, freeze_body=2,
-            weights_path='model_data/tiny_yolo_weights.h5'):
-    '''create the training model, for Tiny YOLOv3'''
-    K.clear_session() # get a new session
-    image_input = Input(shape=(None, None, 3))
-    h, w = input_shape
-    num_anchors = len(anchors)
-
-    y_true = [Input(shape=(h//{0:32, 1:16}[l], w//{0:32, 1:16}[l], \
-        num_anchors//2, num_classes+5)) for l in range(2)]
-
-    model_body = tiny_yolo_body(image_input, num_anchors//2, num_classes)
-    print('Create Tiny YOLOv3 model with {} anchors and {} classes.'.format(num_anchors, num_classes))
-
-    if load_pretrained:
-        model_body.load_weights(weights_path, by_name=True, skip_mismatch=True)
-        print('Load weights {}.'.format(weights_path))
-        if freeze_body in [1, 2]:
-            # Freeze the darknet body or freeze all but 2 output layers.
-            num = (20, len(model_body.layers)-2)[freeze_body-1]
-            for i in range(num): model_body.layers[i].trainable = False
-            print('Freeze the first {} layers of total {} layers.'.format(num, len(model_body.layers)))
-
-    model_loss = Lambda(yolo_loss, output_shape=(1,), name='yolo_loss',
-        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.7})(
         [*model_body.output, *y_true])
     model = Model([model_body.input, *y_true], model_loss)
 

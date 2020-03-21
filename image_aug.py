@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0,'/home/fieldhunter/桌面/水下目标检测算法赛/data_augmention/')
+sys.path.insert(0,'data_augmention/')
 from augment import augment
 import os
 import cv2

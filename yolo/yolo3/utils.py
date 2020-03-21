@@ -1,10 +1,10 @@
 """Miscellaneous utility functions."""
 
 from functools import reduce
-from PIL import Image
 import numpy as np
 import cv2
 import random
+import albumentations as A
 from albumentations import (
     HorizontalFlip,
     VerticalFlip,
@@ -24,26 +24,6 @@ def compose(*funcs):
         return reduce(lambda f, g: lambda *a, **kw: g(f(*a, **kw)), funcs)
     else:
         raise ValueError('Composition of empty sequence not supported.')
-
-def letterbox_image(image, size):
-    '''resize image with unchanged aspect ratio using padding'''
-    iw, ih = image.shape[:2]
-    w, h = size
-    scale = min(w/iw, h/ih)
-    nw = int(iw*scale)
-    nh = int(ih*scale)
-    image = cv2.resize(image, (nw,nh))
-
-    # 用灰色像素块来做背景扩充图片满足输入尺寸需求
-    dx = (w-nw) // 2
-    dy = (h-nh) // 2
-    image = np.pad(image, ((dy, dy), (dx, dx), (0, 0)),
-                   'constant', constant_values=128)
-    if tuple(image.shape[:2]) != (448, 448):
-        image = np.pad(image, ((0, input_shape[0]-image.shape[0]), 
-                (0, input_shape[1]-image.shape[1]), (0, 0)),
-                'constant', constant_values=128)
-    return image
 
 def rand(a=0, b=1):
     return np.random.rand()*(b-a) + a
@@ -75,7 +55,7 @@ def get_random_data(annotation_line, input_shape, max_boxes=100,trainable=True):
     nh = int(ih*scale)
 
     if trainable:
-        if rand() < .5:
+        if rand() < .7:
             annotations = {'image': image,
                            'bboxes':bboxes,
                            'category_id': category_id}
@@ -107,6 +87,16 @@ def get_random_data(annotation_line, input_shape, max_boxes=100,trainable=True):
             augmented = aug(**annotations)
             if len(augmented['bboxes']) == 0:
                 return None, None
+
+        # 图像轻度增强
+        if rand() < .5:
+            aug = get_aug([ A.Compose([
+                            A.RandomBrightness(p=1),
+                            A.RandomContrast(p=1),
+                            A.RandomGamma(p=1),
+                            A.CLAHE(p=1),
+                        ], p=1)])
+            augmented = aug(**augmented)
 
         # 水平和垂直翻转
         if rand() < .5:

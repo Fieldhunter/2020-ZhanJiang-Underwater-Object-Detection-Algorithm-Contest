@@ -1,24 +1,23 @@
 import colorsys
 import os
-import glob
 import numpy as np
 from keras import backend as K
 from keras.models import load_model
 from keras.layers import Input
 import cv2
-from yolo3.model import yolo_eval, yolo_body, tiny_yolo_body
-from yolo3.utils import letterbox_image
+from yolo3.model import yolo_eval, yolo_body
 from keras.utils import multi_gpu_model
 import pandas as pd
+from tqdm import tqdm
 
 
 class YOLO(object):
     _defaults = {
-        "model_path": 'models/yolo/trained_weights_final.h5',
-        "anchors_path": 'data/yolo_anchors.txt',
-        "classes_path": 'data/classes.txt',
-        "score" : 0.05,
-        "iou" : 0.45,
+        "model_path": 'models/trained_weights_final.h5',
+        "anchors_path": '../data/yolo_anchors.txt',
+        "classes_path": '../data/classes.txt',
+        "score" : 0.013,
+        "iou" : 0.3,
         "model_image_size" : (448, 448),
         "gpu_num" : 1,
     }
@@ -58,17 +57,12 @@ class YOLO(object):
         # Load model, or construct model and load weights.
         num_anchors = len(self.anchors)
         num_classes = len(self.class_names)
-        is_tiny_version = num_anchors==6 # default setting
         try:
             self.yolo_model = load_model(model_path, compile=False)
         except:
-            self.yolo_model = tiny_yolo_body(Input(shape=(None,None,3)), num_anchors//2, num_classes) \
-                if is_tiny_version else yolo_body(Input(shape=(None,None,3)), num_anchors//3, num_classes)
-            self.yolo_model.load_weights(self.model_path) # make sure model, anchors and classes match
-        else:
             assert self.yolo_model.layers[-1].output_shape[-1] == \
                 num_anchors/len(self.yolo_model.output) * (num_classes + 5), \
-                'Mismatch between model and given anchor and class sizes'
+                'Mismatch between model and given anchor and class sizes'            
 
         print('{} model, anchors, and classes loaded.'.format(model_path))
 
@@ -116,7 +110,7 @@ def detect_img(yolo, test):
     name, image_id, confidence, xmin, ymin, xmax, ymax = \
         [], [], [], [], [], [], []
 
-    for img in test:
+    for img in tqdm(test):
         image = cv2.imread(img)
         height, width, _ = cv2.imread(img.replace('test_augment', 'test-A-image')).shape
         scale = min(448/width, 448/height)
@@ -193,7 +187,7 @@ def save_csv(name, image_id, confidence, xmin, ymin, xmax, ymax):
 
 
 if __name__ == '__main__':
-    TEST_PATH = "data/test_augment/"
+    TEST_PATH = "../data/test_augment/"
     TEST_NAME = glob.glob(TEST_PATH + "*.jpg")
     yolo = YOLO()
 
