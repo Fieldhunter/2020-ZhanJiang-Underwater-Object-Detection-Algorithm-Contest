@@ -187,7 +187,7 @@ def save_csv(name, image_id, confidence, xmin, ymin, xmax, ymax):
 
 
 if __name__ == '__main__':
-    TEST_PATH = "../data/test/test_A_augment/"
+    TEST_PATH = "/data/test/test_A_augment/"
     TEST_NAME = glob.glob(TEST_PATH + "*.jpg")
     yolo = YOLO()
 

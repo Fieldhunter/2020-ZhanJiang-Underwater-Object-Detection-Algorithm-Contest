@@ -7,12 +7,12 @@ import numpy as np
 from multiprocessing import Pool
 
 number = 0
-def img_aug(name, train=True, input_shape=(448,448)):
+def img_aug(name, train=False, input_shape=(448,448)):
     global number
 
-    h, w = input_shape
     img = cv2.imread(image_path+name)
     if train == False:
+        h, w = input_shape
         ih, iw = img.shape[:2]
         scale = min(w/iw, h/ih)
         nw = int(iw*scale)
@@ -31,15 +31,15 @@ def img_aug(name, train=True, input_shape=(448,448)):
                     'constant', constant_values=128)
     else:
         img = augment(img)
-    cv2.imwrite(result_path+name, img)
 
+    cv2.imwrite(result_path+name, img)
     number += 1
     print('{}. {} is finish!'.format(number, name))
 
 
 if __name__ == '__main__':
-    image_path = 'data/train/image/'
-    result_path = 'data/train/augment/'
+    image_path = 'data/test/test-A-image/'
+    result_path = 'data/test/test_A_augment/'
     all_name = os.listdir(image_path)
     p = Pool(10)
     for i in all_name:

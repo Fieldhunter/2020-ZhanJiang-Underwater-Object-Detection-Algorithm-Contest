@@ -11,7 +11,6 @@ def process():
 
     # 遍历图片
     for i in tqdm(all_name):
-        # 同时对范围进行修正，像素起点改为0
         image_name = image_path+i.rstrip('xml')+'jpg'
         img_name_append = False
         soup = BeautifulSoup(open(file_path+i), 'lxml')
@@ -99,16 +98,16 @@ def process():
 
 
 def save_file(train_result, k_mean_result):
-    with open('../data/yolo_train_data.txt', 'w') as f:
+    with open('/data/yolo_train_data.txt', 'w') as f:
         f.writelines(train_result)
-    with open('../data/yolo_k_mean_data.txt', 'w') as f:
+    with open('/data/yolo_k_mean_data.txt', 'w') as f:
         f.writelines(k_mean_result)
 
 
 if __name__ == '__main__':
     class_label = ['holothurian', 'echinus', 'scallop', 'starfish', 'waterweeds']
-    file_path = '../data/train/box/'
-    image_path = '../data/train/augment/'
+    file_path = '/data/train/box/'
+    image_path = '/data/train/augment/'
     all_name = os.listdir(file_path)
 
     train_result, k_mean_result = process()

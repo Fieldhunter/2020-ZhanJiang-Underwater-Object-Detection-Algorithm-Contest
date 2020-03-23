@@ -9,8 +9,6 @@ from keras.models import Model
 from keras_radam import RAdam
 from keras.callbacks import TensorBoard, ReduceLROnPlateau, EarlyStopping, LearningRateScheduler
 import tensorflow as tf
-import sys
-sys.path.insert(0, '../')
 from swa import SWA
 
 from yolo3.model import preprocess_true_boxes, yolo_body, yolo_loss
@@ -18,10 +16,10 @@ from yolo3.utils import get_random_data
 
 
 def _main():
-    annotation_path = '../data/yolo_train_data.txt'
+    annotation_path = '/data/yolo_train_data.txt'
     log_dir = 'models/'
-    classes_path = '../data/yolo_classes.txt'
-    anchors_path = '../data/yolo_anchors.txt'
+    classes_path = '/data/yolo_classes.txt'
+    anchors_path = '/data/yolo_anchors.txt'
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
