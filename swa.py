@@ -26,7 +26,6 @@ class SWA(K.callbacks.Callback):
         print('learning rate of current epoch is : {}'.format(lr))
 
     def on_epoch_end(self, epoch, logs=None):
-
         if epoch == self.SWA_START:
             self.swa_weights = self.model.get_weights()
 
