@@ -9,15 +9,27 @@ from yolo3.model import yolo_eval, yolo_body
 from keras.utils import multi_gpu_model
 import pandas as pd
 from tqdm import tqdm
+from ensemble_boxes import *
+import glob
 
+
+def create_model(input_shape, num_anchors, num_classes, weights_path):
+    '''create the training model'''
+    image_input = Input(shape=(None, None, 3))
+    h, w = input_shape
+
+    model_body = yolo_body(image_input, num_anchors//3, num_classes)
+    model_body.load_weights(weights_path)
+
+    return model_body
 
 class YOLO(object):
     _defaults = {
         "model_path": 'models/trained_weights_final.h5',
-        "anchors_path": '../data/yolo_anchors.txt',
-        "classes_path": '../data/yolo_classes.txt',
-        "score" : 0.013,
-        "iou" : 0.3,
+        "anchors_path": 'data/yolo_anchors.txt',
+        "classes_path": 'data/classes.txt',
+        "score" : 0.001,
+        "iou" : 0.45,
         "model_image_size" : (448, 448),
         "gpu_num" : 1,
     }
@@ -57,12 +69,7 @@ class YOLO(object):
         # Load model, or construct model and load weights.
         num_anchors = len(self.anchors)
         num_classes = len(self.class_names)
-        try:
-            self.yolo_model = load_model(model_path, compile=False)
-        except:
-            assert self.yolo_model.layers[-1].output_shape[-1] == \
-                num_anchors/len(self.yolo_model.output) * (num_classes + 5), \
-                'Mismatch between model and given anchor and class sizes'            
+        self.yolo_model = create_model(self.model_image_size, num_anchors, num_classes, self.model_path)
 
         print('{} model, anchors, and classes loaded.'.format(model_path))
 
@@ -119,10 +126,14 @@ def detect_img(yolo, test):
         dx = (448-nw) // 2
         dy = (448-nh) // 2
         out_classes, out_scores, out_boxes = yolo.detect_image(image)
+        out_boxes, out_scores, out_classes = weighted_boxes_fusion([out_boxes], [out_scores], [out_classes], weights=None, iou_thr=0.45, skip_box_thr=0.0)
+        out_boxes = out_boxes.tolist()
+        out_scores = out_scores.tolist()
+        out_classes = out_classes.tolist()
 
         for v, i in enumerate(out_boxes):
             # 水草一类删除
-            if out_classes[v] == 4:
+            if int(out_classes[v]) == 4:
                 continue
 
             ym, xm, ya, xa = i
@@ -168,7 +179,7 @@ def detect_img(yolo, test):
             xmax.append(xa)
             ymax.append(ya)
 
-            name.append(class_label[out_classes[v]])
+            name.append(class_label[int(out_classes[v])])
             confidence.append(out_scores[v])
             image_id.append(img.replace('jpg', 'xml').lstrip(TEST_PATH))
 
@@ -187,7 +198,7 @@ def save_csv(name, image_id, confidence, xmin, ymin, xmax, ymax):
 
 
 if __name__ == '__main__':
-    TEST_PATH = "/data/test/test_A_augment/"
+    TEST_PATH = "data/test/test_A_augment/"
     TEST_NAME = glob.glob(TEST_PATH + "*.jpg")
     yolo = YOLO()
 
