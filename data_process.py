@@ -67,7 +67,7 @@ def process():
                 img_name_append = True
 
              # 判断是否增加kmean缩放候选框
-            scale = min(448/width, 448/height)
+            scale = min(input_shape/width, input_shape/height)
             square = ((xmax - xmin)*scale) * ((ymax - ymin)*scale)
             if square < 120:
                 kmean_scale = False
@@ -98,13 +98,14 @@ def process():
 
 
 def save_file(train_result, k_mean_result):
-    with open('data/yolo_train_data.txt', 'w') as f:
+    with open('data/train_data.txt', 'w') as f:
         f.writelines(train_result)
-    with open('data/yolo_k_mean_data.txt', 'w') as f:
+    with open('data/k_mean_data.txt', 'w') as f:
         f.writelines(k_mean_result)
 
 
 if __name__ == '__main__':
+    input_shape = 480
     class_label = ['holothurian', 'echinus', 'scallop', 'starfish', 'waterweeds']
     file_path = 'data/train/box/'
     image_path = 'data/train/augment/'

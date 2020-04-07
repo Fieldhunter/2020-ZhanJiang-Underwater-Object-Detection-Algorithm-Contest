@@ -7,7 +7,7 @@ import numpy as np
 from multiprocessing import Pool
 
 number = 0
-def img_aug(name, train=False, input_shape=(448,448)):
+def img_aug(name, train=False, input_shape=(480,480)):
     global number
 
     img = cv2.imread(image_path+name)

@@ -30,7 +30,7 @@ class YOLO(object):
         "classes_path": 'data/classes.txt',
         "score" : 0.001,
         "iou" : 0.45,
-        "model_image_size" : (448, 448),
+        "model_image_size" : (480, 480),
         "gpu_num" : 1,
     }
 
@@ -112,7 +112,7 @@ class YOLO(object):
         return out_classes, out_scores, out_boxes
 
 
-def detect_img(yolo, test):
+def detect_img(yolo, test, input_shape):
     class_label = ['holothurian', 'echinus', 'scallop', 'starfish']
     name, image_id, confidence, xmin, ymin, xmax, ymax = \
         [], [], [], [], [], [], []
@@ -120,11 +120,11 @@ def detect_img(yolo, test):
     for img in tqdm(test):
         image = cv2.imread(img)
         height, width, _ = cv2.imread(img.replace('test_A_augment', 'test-A-image')).shape
-        scale = min(448/width, 448/height)
+        scale = min(input_shape/width, input_shape/height)
         nw = int(width*scale)
         nh = int(height*scale)
-        dx = (448-nw) // 2
-        dy = (448-nh) // 2
+        dx = (input_shape-nw) // 2
+        dy = (input_shape-nh) // 2
         out_classes, out_scores, out_boxes = yolo.detect_image(image)
         out_boxes, out_scores, out_classes = weighted_boxes_fusion([out_boxes], [out_scores], [out_classes], weights=None, iou_thr=0.45, skip_box_thr=0.0)
         out_boxes = out_boxes.tolist()
@@ -198,8 +198,9 @@ def save_csv(name, image_id, confidence, xmin, ymin, xmax, ymax):
 
 
 if __name__ == '__main__':
+    input_shape = 480
     TEST_PATH = "data/test/test_A_augment/"
     TEST_NAME = glob.glob(TEST_PATH + "*.jpg")
     yolo = YOLO()
 
-    detect_img(yolo, TEST_NAME)
+    detect_img(yolo, TEST_NAME, input_shape)

@@ -25,7 +25,7 @@ def _main():
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
 
-    input_shape = (448,448) # multiple of 32, hw
+    input_shape = (480,480) # multiple of 32, hw
 
     model = create_model(input_shape, anchors, num_classes,
         freeze_body=2, weights_path='pre_train/yolo_weights.h5') # make sure you know what you freeze
@@ -33,11 +33,11 @@ def _main():
     checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5', monitor='val_loss', save_weights_only=True, save_best_only=True, period=1)
 
     # use swa
-    swa_start = 50
+    swa_start = 100
     swa_obj = SWA('',swa_start)
 
     # use cosine
-    cosine = CosineAnnealingScheduler(init_epoch=50, T_max=200, eta_max=1e-2, eta_min=1e-5)
+    cosine = CosineAnnealingScheduler(init_epoch=100, T_max=200, eta_max=1e-2, eta_min=1e-6)
 
     val_split = 0.1
     with open(annotation_path) as f:
@@ -61,7 +61,7 @@ def _main():
                 steps_per_epoch=max(1, num_train//batch_size),
                 validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes, trainable=False),
                 validation_steps=max(1, num_val//batch_size),
-                epochs=50,
+                epochs=100,
                 initial_epoch=0,
                 callbacks=[logging])
         model.save_weights(log_dir + 'trained_weights_stage_1.h5')
@@ -72,7 +72,7 @@ def _main():
     if True:
         for i in range(len(model.layers)):
             model.layers[i].trainable = True
-        model.compile(optimizer=RAdam(warmup_proportion=0.1, min_lr=1e-5), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+        model.compile(optimizer=RAdam(warmup_proportion=0.1, min_lr=1e-6), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
         print('Unfreeze all of the layers.')
 
         batch_size = 8 # note that more GPU memory is required after unfreezing the body
@@ -81,8 +81,8 @@ def _main():
             steps_per_epoch=max(1, num_train//batch_size),
             validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes, trainable=False),
             validation_steps=max(1, num_val//batch_size),
-            epochs=250,
-            initial_epoch=50,
+            epochs=300,
+            initial_epoch=100,
             callbacks=[logging, cosine, swa_obj, checkpoint])
         model.save_weights(log_dir + 'trained_weights_final.h5')
 
