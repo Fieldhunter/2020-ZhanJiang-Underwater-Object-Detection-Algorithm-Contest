@@ -29,7 +29,7 @@ class YOLO(object):
         "anchors_path": 'data/yolo_anchors.txt',
         "classes_path": 'data/classes.txt',
         "score" : 0.001,
-        "iou" : 0.45,
+        "iou" : 0.3,
         "model_image_size" : (480, 480),
         "gpu_num" : 1,
     }
@@ -126,7 +126,7 @@ def detect_img(yolo, test, input_shape):
         dx = (input_shape-nw) // 2
         dy = (input_shape-nh) // 2
         out_classes, out_scores, out_boxes = yolo.detect_image(image)
-        out_boxes, out_scores, out_classes = weighted_boxes_fusion([out_boxes], [out_scores], [out_classes], weights=None, iou_thr=0.45, skip_box_thr=0.0)
+        out_boxes, out_scores, out_classes = weighted_boxes_fusion([out_boxes], [out_scores], [out_classes], weights=None, iou_thr=0.3, skip_box_thr=0.0)
         out_boxes = out_boxes.tolist()
         out_scores = out_scores.tolist()
         out_classes = out_classes.tolist()
