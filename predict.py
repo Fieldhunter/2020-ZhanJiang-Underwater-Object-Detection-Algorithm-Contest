@@ -126,6 +126,8 @@ def detect_img(yolo, test, input_shape):
         dx = (input_shape-nw) // 2
         dy = (input_shape-nh) // 2
         out_classes, out_scores, out_boxes = yolo.detect_image(image)
+
+        # 采用WBF代替NMS
         out_boxes, out_scores, out_classes = weighted_boxes_fusion([out_boxes], [out_scores], [out_classes], weights=None, iou_thr=0.25, skip_box_thr=0.0)
         out_boxes = out_boxes.tolist()
         out_scores = out_scores.tolist()

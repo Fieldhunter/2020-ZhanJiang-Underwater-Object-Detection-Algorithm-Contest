@@ -41,6 +41,8 @@ if __name__ == '__main__':
     image_path = 'data/test/test-B-image/'
     result_path = 'data/test/test_B_augment/'
     all_name = os.listdir(image_path)
+
+    # 使用多进程来加速处理
     p = Pool(10)
     for i in all_name:
         p.apply_async(img_aug, args=(i,))

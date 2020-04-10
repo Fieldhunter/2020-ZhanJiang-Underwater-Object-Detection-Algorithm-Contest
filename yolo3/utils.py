@@ -55,6 +55,7 @@ def get_random_data(annotation_line, input_shape, max_boxes=100,trainable=True):
     nh = int(ih*scale)
 
     if trainable:
+        # 直接缩放
         if rand() < .7:
             annotations = {'image': image,
                            'bboxes':bboxes,
@@ -78,6 +79,7 @@ def get_random_data(annotation_line, input_shape, max_boxes=100,trainable=True):
 
             augmented['bboxes'] = bboxes
             augmented['category_id'] = category_id
+        # 随机剪裁
         else:
             annotations = {'image': image,
                            'bboxes':bboxes,
@@ -106,6 +108,7 @@ def get_random_data(annotation_line, input_shape, max_boxes=100,trainable=True):
             aug = get_aug([HorizontalFlip(p=1)])
             augmented = aug(**augmented)
     else:
+        # 测试集直接缩放
         annotations = {'image': image,
                        'bboxes':bboxes,
                        'category_id': category_id}
@@ -130,6 +133,7 @@ def get_random_data(annotation_line, input_shape, max_boxes=100,trainable=True):
                 (0, input_shape[1]-image.shape[1]), (0, 0)),
                 'constant', constant_values=128)
 
+    # 模型输入格式处理
     image = image / 255.
     box_data = np.zeros((max_boxes,5))
     box = np.array([np.array(box[i]) for i in range(len(box))])
