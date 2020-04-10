@@ -38,8 +38,8 @@ def img_aug(name, train=False, input_shape=(480,480)):
 
 
 if __name__ == '__main__':
-    image_path = 'data/test/test-A-image/'
-    result_path = 'data/test/test_A_augment/'
+    image_path = 'data/test/test-B-image/'
+    result_path = 'data/test/test_B_augment/'
     all_name = os.listdir(image_path)
     p = Pool(10)
     for i in all_name:
