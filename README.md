@@ -1,4 +1,9 @@
 # 2020-ZhanJiang-Underwater-Object-Detection-Algorithm-Contest
+
+[![](https://img.shields.io/badge/license-MIT-green)](https://github.com/Fieldhunter/2020-ZhanJiang-Underwater-Object-Detection-Algorithm-Contest/blob/master/LICENSE)
+[![](https://img.shields.io/badge/author-Fieldhunter-blue)](https://github.com/Fieldhunter)
+![](https://img.shields.io/badge/frame-keras-yellow)
+
 2020湛江水下目标检测算法赛
 
 ## 前言
